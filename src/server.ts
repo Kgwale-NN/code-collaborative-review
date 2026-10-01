@@ -1,4 +1,5 @@
 import express from "express";
+import { pool } from "./config/db";
 
 const app = express();
 const PORT = 3000;
@@ -11,6 +12,19 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function startServer() {
+  try {
+    await pool.query("SELECT 1");
+    console.log("Database connected");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to connect to the database:", error);
+    await pool.end();
+    process.exitCode = 1;
+  }
+}
+
+startServer();
