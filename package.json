@@ -1,23 +1,26 @@
 {
-  "name": "code-collaborative-review",
+  "name": "express-typescript-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node src/server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@types/node": "^26.6.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "body-parser": "^2.3.0",
     "express": "^5.2.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "express-validator": "^7.3.2",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
-    "@types/express": "^5.0.6",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "typescript": "5.6.3"
   }
 }
