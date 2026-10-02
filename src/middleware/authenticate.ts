@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { pool } from "../config/db";
 
-export function authenticate(
+export async function authenticate(
   req: Request,
   res: Response,
   next: NextFunction
@@ -45,10 +46,31 @@ export function authenticate(
       return;
     }
 
-    req.user = {
-      id: Number(payload.sub),
-      role: payload.role
-    };
+ let result;
+
+try {
+  result = await pool.query(
+    "SELECT id, role FROM users WHERE id = $1",
+    [Number(payload.sub)]
+  );
+} catch (error) {
+  next(error);
+  return;
+}
+
+const user = result.rows[0];
+
+if (!user) {
+  res.status(401).json({
+    message: "This account no longer exists"
+  });
+  return;
+}
+
+req.user = {
+  id: user.id,
+  role: user.role
+};
   } catch {
     res.status(401).json({
       message: "Invalid or expired token"
