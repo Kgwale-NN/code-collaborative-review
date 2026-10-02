@@ -1,9 +1,20 @@
 import { Router } from "express";
-import { getUserById } from "../controllers/userController";
+import {
+  getUserById,
+  updateUser
+} from "../controllers/userController";
 import { authenticate } from "../middleware/authenticate";
+import { validateProfileUpdate } from "../middleware/validateProfileUpdate";
 
 const router = Router();
 
 router.get("/:id", authenticate, getUserById);
+
+router.put(
+  "/:id",
+  authenticate,
+  validateProfileUpdate,
+  updateUser
+);
 
 export default router;
