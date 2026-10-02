@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { pool } from "../config/db";
+import jwt from "jsonwebtoken";
 
 export async function register(
   req: Request,
@@ -35,6 +36,73 @@ export async function register(
       return;
     }
 
+    next(error);
+  }
+}
+
+export async function login(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { email, password } = req.body;
+
+    const result = await pool.query(
+      `SELECT id, name, email, role, password_hash
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      res.status(401).json({
+        message: "Invalid email or password"
+      });
+      return;
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!passwordMatches) {
+      res.status(401).json({
+        message: "Invalid email or password"
+      });
+      return;
+    }
+
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
+    const token = jwt.sign(
+      { role: user.role },
+      secret,
+      {
+        subject: String(user.id),
+        expiresIn: "1h",
+        algorithm: "HS256"
+      }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
     next(error);
   }
 }
