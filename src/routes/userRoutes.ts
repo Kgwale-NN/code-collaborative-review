@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
   getUserById,
-  updateUser
+  updateUser,
+  deleteUser
 } from "../controllers/userController";
+
 import { authenticate } from "../middleware/authenticate";
 import { validateProfileUpdate } from "../middleware/validateProfileUpdate";
 
@@ -16,5 +18,7 @@ router.put(
   validateProfileUpdate,
   updateUser
 );
+
+router.delete("/:id", authenticate, deleteUser);
 
 export default router;
