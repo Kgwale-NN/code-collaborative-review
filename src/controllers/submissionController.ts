@@ -47,3 +47,60 @@ export async function createSubmission(
     next(error);
   }
 }
+
+export async function listSubmissionsByProject(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const projectId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(projectId) || projectId <= 0) {
+      res.status(400).json({
+        message: "Project ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    // Check if the user is a member of the project
+    const memberCheck = await pool.query(
+      `SELECT id FROM projects 
+       WHERE id = $1 AND (owner_id = $2 OR id IN (
+         SELECT project_id FROM project_members WHERE user_id = $2
+       ))`,
+      [projectId, req.user.id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      res.status(403).json({
+        message: "You must be a member of this project to view submissions"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT s.id, s.project_id, s.submitter_id, s.title, s.code, 
+              s.language, s.filename, s.status, s.created_at,
+              u.name as submitter_name
+       FROM submissions s
+       JOIN users u ON s.submitter_id = u.id
+       WHERE s.project_id = $1
+       ORDER BY s.created_at DESC`,
+      [projectId]
+    );
+
+    res.status(200).json({
+      submissions: result.rows
+    });
+  } catch (error) {
+    next(error);
+  }
+}
