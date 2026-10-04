@@ -5,6 +5,7 @@ import userRoutes from "./routes/userRoutes";
 import projectRoutes from "./routes/projectRoutes";
 import submissionRoutes from "./routes/submissionRoutes";
 import commentRoutes from "./routes/commentRoutes";
+import commentManagementRoutes from "./routes/commentManagementRoutes";
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +16,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/submissions", commentRoutes);
+app.use("/api/comments", commentManagementRoutes);
 
 
 app.get("/api/health", (req, res) => {
