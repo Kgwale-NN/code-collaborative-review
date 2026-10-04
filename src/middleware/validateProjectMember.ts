@@ -1,0 +1,23 @@
+import { body, validationResult } from "express-validator";
+import type { Request, Response, NextFunction } from "express";
+
+export const validateProjectMember = [
+  body("user_id")
+    .isInt({ min: 1 })
+    .withMessage("User ID must be a positive integer"),
+
+  (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        errors: errors.array().map((error) => ({
+          message: error.msg
+        }))
+      });
+      return;
+    }
+
+    next();
+  }
+];
