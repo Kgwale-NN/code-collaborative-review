@@ -3,6 +3,7 @@ import { pool } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import projectRoutes from "./routes/projectRoutes";
+import submissionRoutes from "./routes/submissionRoutes";
 
 const app = express();
 const PORT = 3000;
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/submissions", submissionRoutes);
 
 
 app.get("/api/health", (req, res) => {
