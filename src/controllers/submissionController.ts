@@ -168,3 +168,83 @@ export async function getSubmissionById(
     next(error);
   }
 }
+
+export async function updateSubmissionStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const submissionId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(submissionId) || submissionId <= 0) {
+      res.status(400).json({
+        message: "Submission ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    const { status } = req.body;
+
+    const validStatuses = ["pending", "in_review", "approved", "changes_requested"];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({
+        message: "Invalid status. Must be one of: pending, in_review, approved, changes_requested"
+      });
+      return;
+    }
+
+    // Get the submission to check project membership
+    const submissionCheck = await pool.query(
+      "SELECT project_id, submitter_id FROM submissions WHERE id = $1",
+      [submissionId]
+    );
+
+    if (submissionCheck.rows.length === 0) {
+      res.status(404).json({
+        message: "Submission not found"
+      });
+      return;
+    }
+
+    const submission = submissionCheck.rows[0];
+
+    // Check if the user is a member of the project
+    const memberCheck = await pool.query(
+      `SELECT id FROM projects 
+       WHERE id = $1 AND (owner_id = $2 OR id IN (
+         SELECT project_id FROM project_members WHERE user_id = $2
+       ))`,
+      [submission.project_id, req.user.id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      res.status(403).json({
+        message: "You must be a member of this project to update submission status"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `UPDATE submissions
+       SET status = $1
+       WHERE id = $2
+       RETURNING id, project_id, submitter_id, title, code, language, filename, status, created_at`,
+      [status, submissionId]
+    );
+
+    res.status(200).json({
+      message: "Submission status updated successfully",
+      submission: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+}
