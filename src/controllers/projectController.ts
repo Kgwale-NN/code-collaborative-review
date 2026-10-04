@@ -64,3 +64,86 @@ export async function listProjects(
     next(error);
   }
 }
+
+export async function addProjectMember(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const projectId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(projectId) || projectId <= 0) {
+      res.status(400).json({
+        message: "Project ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    const { user_id } = req.body;
+
+    // Check if the requester is the project owner
+    const projectCheck = await pool.query(
+      "SELECT owner_id FROM projects WHERE id = $1",
+      [projectId]
+    );
+
+    if (projectCheck.rows.length === 0) {
+      res.status(404).json({
+        message: "Project not found"
+      });
+      return;
+    }
+
+    if (projectCheck.rows[0].owner_id !== req.user.id) {
+      res.status(403).json({
+        message: "Only the project owner can add members"
+      });
+      return;
+    }
+
+    // Add the member
+    const result = await pool.query(
+      `INSERT INTO project_members (project_id, user_id)
+       VALUES ($1, $2)
+       RETURNING id, project_id, user_id, joined_at`,
+      [projectId, user_id]
+    );
+
+    res.status(201).json({
+      message: "Member added successfully",
+      member: result.rows[0]
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "23505"
+    ) {
+      res.status(409).json({
+        message: "This user is already a member of this project"
+      });
+      return;
+    }
+
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "23503"
+    ) {
+      res.status(404).json({
+        message: "User not found"
+      });
+      return;
+    }
+
+    next(error);
+  }
+}
