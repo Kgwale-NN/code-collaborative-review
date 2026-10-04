@@ -214,3 +214,59 @@ export async function updateComment(
     next(error);
   }
 }
+
+export async function deleteComment(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const commentId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(commentId) || commentId <= 0) {
+      res.status(400).json({
+        message: "Comment ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    // Get the comment to check ownership
+    const commentCheck = await pool.query(
+      "SELECT reviewer_id FROM comments WHERE id = $1",
+      [commentId]
+    );
+
+    if (commentCheck.rows.length === 0) {
+      res.status(404).json({
+        message: "Comment not found"
+      });
+      return;
+    }
+
+    const comment = commentCheck.rows[0];
+
+    // Only the reviewer who created the comment can delete it
+    if (comment.reviewer_id !== req.user.id) {
+      res.status(403).json({
+        message: "You can only delete your own comments"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      "DELETE FROM comments WHERE id = $1 RETURNING id",
+      [commentId]
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
