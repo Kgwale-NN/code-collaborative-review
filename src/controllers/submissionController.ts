@@ -248,3 +248,59 @@ export async function updateSubmissionStatus(
     next(error);
   }
 }
+
+export async function deleteSubmission(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const submissionId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(submissionId) || submissionId <= 0) {
+      res.status(400).json({
+        message: "Submission ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    // Get the submission to check ownership
+    const submissionCheck = await pool.query(
+      "SELECT project_id, submitter_id FROM submissions WHERE id = $1",
+      [submissionId]
+    );
+
+    if (submissionCheck.rows.length === 0) {
+      res.status(404).json({
+        message: "Submission not found"
+      });
+      return;
+    }
+
+    const submission = submissionCheck.rows[0];
+
+    // Only the submitter can delete their own submission
+    if (submission.submitter_id !== req.user.id) {
+      res.status(403).json({
+        message: "You can only delete your own submissions"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      "DELETE FROM submissions WHERE id = $1 RETURNING id",
+      [submissionId]
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
