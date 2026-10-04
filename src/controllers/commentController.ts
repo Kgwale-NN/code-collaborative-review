@@ -150,3 +150,67 @@ export async function listComments(
     next(error);
   }
 }
+
+export async function updateComment(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const commentId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(commentId) || commentId <= 0) {
+      res.status(400).json({
+        message: "Comment ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    const { content, line_number } = req.body;
+
+    // Get the comment to check ownership
+    const commentCheck = await pool.query(
+      "SELECT reviewer_id, submission_id FROM comments WHERE id = $1",
+      [commentId]
+    );
+
+    if (commentCheck.rows.length === 0) {
+      res.status(404).json({
+        message: "Comment not found"
+      });
+      return;
+    }
+
+    const comment = commentCheck.rows[0];
+
+    // Only the reviewer who created the comment can update it
+    if (comment.reviewer_id !== req.user.id) {
+      res.status(403).json({
+        message: "You can only update your own comments"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `UPDATE comments
+       SET content = $1, line_number = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING id, submission_id, reviewer_id, content, line_number, created_at, updated_at`,
+      [content, line_number ?? null, commentId]
+    );
+
+    res.status(200).json({
+      message: "Comment updated successfully",
+      comment: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+}
