@@ -104,3 +104,67 @@ export async function listSubmissionsByProject(
     next(error);
   }
 }
+
+export async function getSubmissionById(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const submissionId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(submissionId) || submissionId <= 0) {
+      res.status(400).json({
+        message: "Submission ID must be a positive integer"
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication is required"
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT s.id, s.project_id, s.submitter_id, s.title, s.code, 
+              s.language, s.filename, s.status, s.created_at,
+              u.name as submitter_name
+       FROM submissions s
+       JOIN users u ON s.submitter_id = u.id
+       WHERE s.id = $1`,
+      [submissionId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        message: "Submission not found"
+      });
+      return;
+    }
+
+    // Check if the user is a member of the project
+    const submission = result.rows[0];
+    const memberCheck = await pool.query(
+      `SELECT id FROM projects 
+       WHERE id = $1 AND (owner_id = $2 OR id IN (
+         SELECT project_id FROM project_members WHERE user_id = $2
+       ))`,
+      [submission.project_id, req.user.id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      res.status(403).json({
+        message: "You must be a member of this project to view this submission"
+      });
+      return;
+    }
+
+    res.status(200).json({
+      submission: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+}
