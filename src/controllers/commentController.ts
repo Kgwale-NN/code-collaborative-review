@@ -37,7 +37,7 @@ export async function addComment(
 
     // Get the submission to check project membership
     const submissionCheck = await pool.query(
-      "SELECT project_id FROM submissions WHERE id = $1",
+      "SELECT project_id, code FROM submissions WHERE id = $1",
       [submissionId]
     );
 
@@ -62,6 +62,16 @@ export async function addComment(
     if (memberCheck.rows.length === 0) {
       res.status(403).json({
         message: "You must be a member of this project to add comments"
+      });
+      return;
+    }
+
+    // Preserve blank lines and handle Windows, Unix, and older Mac line endings.
+    const lineCount = submission.code.split(/\r\n|\n|\r/).length;
+    if (line_number != null && line_number > lineCount) {
+      res.status(400).json({
+        message: "Line number must refer to an existing line in the submission",
+        line_count: lineCount
       });
       return;
     }
@@ -202,7 +212,7 @@ export async function updateComment(
 
     // Get the comment to check ownership
     const commentCheck = await pool.query(
-      `SELECT c.reviewer_id, s.project_id
+      `SELECT c.reviewer_id, s.project_id, s.code
        FROM comments c
        JOIN submissions s ON s.id = c.submission_id
        WHERE c.id = $1`,
@@ -238,6 +248,16 @@ export async function updateComment(
     if (memberCheck.rows.length === 0) {
       res.status(403).json({
         message: "You must be a member of this project to update comments"
+      });
+      return;
+    }
+
+    // Preserve blank lines and handle Windows, Unix, and older Mac line endings.
+    const lineCount = comment.code.split(/\r\n|\n|\r/).length;
+    if (line_number != null && line_number > lineCount) {
+      res.status(400).json({
+        message: "Line number must refer to an existing line in the submission",
+        line_count: lineCount
       });
       return;
     }

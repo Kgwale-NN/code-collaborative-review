@@ -109,6 +109,23 @@ export async function addProjectMember(
             return;
         }
 
+        const userCheck = await pool.query(
+            "SELECT role FROM users WHERE id = $1",
+            [user_id]
+        );
+
+        if (userCheck.rows.length === 0) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+
+        if (userCheck.rows[0].role !== "reviewer") {
+            res.status(400).json({
+                message: "Only users with the reviewer role can be added as project members"
+            });
+            return;
+        }
+
         // Add the member
         const result = await pool.query(
             `INSERT INTO project_members (project_id, user_id)
