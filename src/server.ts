@@ -1,5 +1,6 @@
 import express from "express";
 import { createServer } from "node:http";
+import { setupWebSocketServer } from "./services/webSocketServer";
 import { pool } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
@@ -11,6 +12,7 @@ import reviewRoutes from "./routes/reviewRoutes";
 
 const app = express();
 const server = createServer(app);
+setupWebSocketServer(server);
 const PORT = 3000;
 
 app.use(express.json());
