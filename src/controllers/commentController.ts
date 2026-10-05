@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { pool } from "../config/db";
+import { createSubmissionNotification } from "../services/notificationService";
 
 export async function addComment(
   req: Request,
@@ -64,17 +65,37 @@ export async function addComment(
       return;
     }
 
-    const result = await pool.query(
-      `INSERT INTO comments (submission_id, reviewer_id, content, line_number)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, submission_id, reviewer_id, content, line_number, created_at`,
-      [submissionId, req.user.id, content, line_number ?? null]
-    );
+    const client = await pool.connect();
 
-    res.status(201).json({
-      message: "Comment added successfully",
-      comment: result.rows[0]
-    });
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `INSERT INTO comments (submission_id, reviewer_id, content, line_number)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, submission_id, reviewer_id, content, line_number, created_at`,
+        [submissionId, req.user.id, content, line_number ?? null]
+      );
+
+      await createSubmissionNotification(
+        client,
+        submissionId,
+        req.user.id,
+        "comment_added"
+      );
+
+      await client.query("COMMIT");
+
+      res.status(201).json({
+        message: "Comment added successfully",
+        comment: result.rows[0]
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     next(error);
   }
