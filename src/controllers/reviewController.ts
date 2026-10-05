@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { pool } from "../config/db";
+import { createSubmissionNotification } from "../services/notificationService";
 
 export async function approveSubmission(
   req: Request,
@@ -74,6 +75,13 @@ export async function approveSubmission(
          WHERE id = $1
          RETURNING id, project_id, submitter_id, title, code, language, filename, status, created_at`,
         [submissionId]
+      );
+
+      await createSubmissionNotification(
+        client,
+        submissionId,
+        req.user.id,
+        "review_approved"
       );
 
       // Add review record
@@ -180,6 +188,13 @@ export async function requestChanges(
         `INSERT INTO reviews (submission_id, reviewer_id, action, notes)
          VALUES ($1, $2, 'changes_requested', $3)`,
         [submissionId, req.user.id, req.body?.notes ?? null]
+      );
+
+      await createSubmissionNotification(
+        client,
+        submissionId,
+        req.user.id,
+        "changes_requested"
       );
 
       await client.query("COMMIT");
