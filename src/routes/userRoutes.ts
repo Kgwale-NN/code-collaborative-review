@@ -8,6 +8,8 @@ import {
 import { authenticate } from "../middleware/authenticate";
 import { validateProfileUpdate } from "../middleware/validateProfileUpdate";
 
+import { listNotifications } from "../controllers/notificationController";
+
 const router = Router();
 
 router.get("/:id", authenticate, getUserById);
@@ -20,5 +22,7 @@ router.put(
 );
 
 router.delete("/:id", authenticate, deleteUser);
+
+router.get("/:id/notifications", authenticate, listNotifications);
 
 export default router;
