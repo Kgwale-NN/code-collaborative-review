@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "node:http";
 import { pool } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
@@ -9,6 +10,7 @@ import commentManagementRoutes from "./routes/commentManagementRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
 
 const app = express();
+const server = createServer(app);
 const PORT = 3000;
 
 app.use(express.json());
@@ -32,7 +34,7 @@ async function startServer() {
     await pool.query("SELECT 1");
     console.log("Database connected");
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
