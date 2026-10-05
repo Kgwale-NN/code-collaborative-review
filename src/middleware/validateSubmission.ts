@@ -18,8 +18,8 @@ export const validateSubmission = [
     .isString()
     .withMessage("Code must be text")
     .bail()
-    .trim()
-    .notEmpty()
+    // Inspect a trimmed copy while preserving the original code and line numbers.
+    .custom((code: string) => code.trim().length > 0)
     .withMessage("Code cannot be empty"),
 
   body("language")
