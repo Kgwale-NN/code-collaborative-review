@@ -191,12 +191,19 @@ export async function updateSubmissionStatus(
       return;
     }
 
-    const { status } = req.body;
+    if (req.user.role !== "reviewer") {
+      res.status(403).json({
+        message: "Only reviewers can change submission status"
+      });
+      return;
+    }
 
-    const validStatuses = ["pending", "in_review", "approved", "changes_requested"];
-    if (!validStatuses.includes(status)) {
+    const status = req.body?.status;
+
+    // Review decisions must use the endpoints that also record review history.
+    if (status !== "in_review") {
       res.status(400).json({
-        message: "Invalid status. Must be one of: pending, in_review, approved, changes_requested"
+        message: "This endpoint only accepts in_review. Use approve or request-changes for review decisions"
       });
       return;
     }
@@ -235,10 +242,17 @@ export async function updateSubmissionStatus(
     const result = await pool.query(
       `UPDATE submissions
        SET status = $1
-       WHERE id = $2
+       WHERE id = $2 AND status IN ('pending', 'in_review')
        RETURNING id, project_id, submitter_id, title, code, language, filename, status, created_at`,
       [status, submissionId]
     );
+
+    if (result.rows.length === 0) {
+      res.status(409).json({
+        message: "A completed review cannot be reset through this endpoint"
+      });
+      return;
+    }
 
     res.status(200).json({
       message: "Submission status updated successfully",
