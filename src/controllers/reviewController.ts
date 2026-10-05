@@ -80,7 +80,7 @@ export async function approveSubmission(
       await client.query(
         `INSERT INTO reviews (submission_id, reviewer_id, action, notes)
          VALUES ($1, $2, 'approved', $3)`,
-        [submissionId, req.user.id, req.body.notes ?? null]
+        [submissionId, req.user.id, req.body?.notes ?? null]
       );
 
       await client.query("COMMIT");
@@ -179,7 +179,7 @@ export async function requestChanges(
       await client.query(
         `INSERT INTO reviews (submission_id, reviewer_id, action, notes)
          VALUES ($1, $2, 'changes_requested', $3)`,
-        [submissionId, req.user.id, req.body.notes ?? null]
+        [submissionId, req.user.id, req.body?.notes ?? null]
       );
 
       await client.query("COMMIT");
