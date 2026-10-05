@@ -177,7 +177,10 @@ export async function updateComment(
 
     // Get the comment to check ownership
     const commentCheck = await pool.query(
-      "SELECT reviewer_id, submission_id FROM comments WHERE id = $1",
+      `SELECT c.reviewer_id, s.project_id
+       FROM comments c
+       JOIN submissions s ON s.id = c.submission_id
+       WHERE c.id = $1`,
       [commentId]
     );
 
@@ -191,9 +194,25 @@ export async function updateComment(
     const comment = commentCheck.rows[0];
 
     // Only the reviewer who created the comment can update it
-    if (comment.reviewer_id !== req.user.id) {
+    if (req.user.role !== "reviewer" || comment.reviewer_id !== req.user.id) {
       res.status(403).json({
         message: "You can only update your own comments"
+      });
+      return;
+    }
+
+    // Comment ownership does not preserve access after project removal.
+    const memberCheck = await pool.query(
+      `SELECT id FROM projects
+       WHERE id = $1 AND (owner_id = $2 OR id IN (
+         SELECT project_id FROM project_members WHERE user_id = $2
+       ))`,
+      [comment.project_id, req.user.id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      res.status(403).json({
+        message: "You must be a member of this project to update comments"
       });
       return;
     }
@@ -239,7 +258,10 @@ export async function deleteComment(
 
     // Get the comment to check ownership
     const commentCheck = await pool.query(
-      "SELECT reviewer_id FROM comments WHERE id = $1",
+      `SELECT c.reviewer_id, s.project_id
+       FROM comments c
+       JOIN submissions s ON s.id = c.submission_id
+       WHERE c.id = $1`,
       [commentId]
     );
 
@@ -253,9 +275,25 @@ export async function deleteComment(
     const comment = commentCheck.rows[0];
 
     // Only the reviewer who created the comment can delete it
-    if (comment.reviewer_id !== req.user.id) {
+    if (req.user.role !== "reviewer" || comment.reviewer_id !== req.user.id) {
       res.status(403).json({
         message: "You can only delete your own comments"
+      });
+      return;
+    }
+
+    // Comment ownership does not preserve access after project removal.
+    const memberCheck = await pool.query(
+      `SELECT id FROM projects
+       WHERE id = $1 AND (owner_id = $2 OR id IN (
+         SELECT project_id FROM project_members WHERE user_id = $2
+       ))`,
+      [comment.project_id, req.user.id]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      res.status(403).json({
+        message: "You must be a member of this project to delete comments"
       });
       return;
     }
