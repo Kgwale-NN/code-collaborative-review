@@ -16,6 +16,8 @@ export const validateRegistration = [
     .bail()
     .trim()
     .isLength({ max: 255 })
+    .withMessage("Email must not exceed 255 characters")
+    .bail()
     .isEmail()
     .withMessage("Provide a valid email address")
     .customSanitizer((email: string) => email.toLowerCase()),
@@ -30,6 +32,9 @@ export const validateRegistration = [
     .withMessage("Password must not exceed 72 bytes"),
 
   body("role")
+    .isString()
+    .withMessage("Role must be text")
+    .bail()
     .isIn(["submitter", "reviewer"])
     .withMessage("Role must be submitter or reviewer"),
 

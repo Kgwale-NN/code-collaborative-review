@@ -11,7 +11,7 @@ export const validateProject = [
     .withMessage("Project name must contain 1 to 150 characters"),
 
   body("description")
-    .optional()
+    .optional({ values: "null" })
     .isString()
     .withMessage("Description must be text")
     .bail()

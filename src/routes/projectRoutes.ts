@@ -1,3 +1,4 @@
+import { validateIdParam } from "../middleware/validateId";
 import { Router } from "express";
 import { createProject, listProjects, addProjectMember, removeProjectMember } from "../controllers/projectController";
 import { listSubmissionsByProject } from "../controllers/submissionController";
@@ -8,6 +9,9 @@ import { validateProjectMember } from "../middleware/validateProjectMember";
 import { getProjectStats } from "../controllers/statsController";
 
 const router = Router();
+
+router.param("id", validateIdParam);
+router.param("userId", validateIdParam);
 
 router.post("/", authenticate, validateProject, createProject);
 router.get("/", authenticate, listProjects);

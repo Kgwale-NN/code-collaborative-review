@@ -1,10 +1,13 @@
+import { isDatabaseId } from "./validateId";
 import { body, validationResult } from "express-validator";
 import type { Request, Response, NextFunction } from "express";
 
 export const validateSubmission = [
   body("project_id")
-    .isInt({ min: 1 })
-    .withMessage("Project ID must be a positive integer"),
+    .custom(isDatabaseId)
+    .withMessage("Project ID must be a whole number between 1 and 2147483647")
+    .bail()
+    .toInt(),
 
   body("title")
     .isString()
@@ -23,7 +26,7 @@ export const validateSubmission = [
     .withMessage("Code cannot be empty"),
 
   body("language")
-    .optional()
+    .optional({ values: "null" })
     .isString()
     .withMessage("Language must be text")
     .bail()
@@ -32,7 +35,7 @@ export const validateSubmission = [
     .withMessage("Language must not exceed 50 characters"),
 
   body("filename")
-    .optional()
+    .optional({ values: "null" })
     .isString()
     .withMessage("Filename must be text")
     .bail()

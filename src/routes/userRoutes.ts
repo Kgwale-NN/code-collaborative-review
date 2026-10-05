@@ -1,3 +1,4 @@
+import { validateIdParam } from "../middleware/validateId";
 import { Router } from "express";
 import {
   getUserById,
@@ -11,6 +12,8 @@ import { validateProfileUpdate } from "../middleware/validateProfileUpdate";
 import { listNotifications } from "../controllers/notificationController";
 
 const router = Router();
+
+router.param("id", validateIdParam);
 
 router.get("/:id", authenticate, getUserById);
 
