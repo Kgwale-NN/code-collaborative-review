@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { pool } from "../config/db";
 import { createSubmissionNotification } from "../services/notificationService";
+import { publishNotification } from "../services/webSocketServer";
 
 export async function approveSubmission(
   req: Request,
@@ -77,7 +78,7 @@ export async function approveSubmission(
         [submissionId]
       );
 
-      await createSubmissionNotification(
+      const notification = await createSubmissionNotification(
         client,
         submissionId,
         req.user.id,
@@ -92,6 +93,9 @@ export async function approveSubmission(
       );
 
       await client.query("COMMIT");
+
+      // Send only committed activity; delivery failures are handled separately.
+      void publishNotification(notification);
 
       res.status(200).json({
         message: "Submission approved successfully",
@@ -190,7 +194,7 @@ export async function requestChanges(
         [submissionId, req.user.id, req.body?.notes ?? null]
       );
 
-      await createSubmissionNotification(
+      const notification = await createSubmissionNotification(
         client,
         submissionId,
         req.user.id,
@@ -198,6 +202,9 @@ export async function requestChanges(
       );
 
       await client.query("COMMIT");
+
+      // Send only committed activity; delivery failures are handled separately.
+      void publishNotification(notification);
 
       res.status(200).json({
         message: "Changes requested successfully",

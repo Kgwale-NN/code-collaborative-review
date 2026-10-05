@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { pool } from "../config/db";
 import { createSubmissionNotification } from "../services/notificationService";
+import { publishNotification } from "../services/webSocketServer";
 
 export async function addComment(
   req: Request,
@@ -77,7 +78,7 @@ export async function addComment(
         [submissionId, req.user.id, content, line_number ?? null]
       );
 
-      await createSubmissionNotification(
+      const notification = await createSubmissionNotification(
         client,
         submissionId,
         req.user.id,
@@ -85,6 +86,9 @@ export async function addComment(
       );
 
       await client.query("COMMIT");
+
+      // Send only committed activity; delivery failures are handled separately.
+      void publishNotification(notification);
 
       res.status(201).json({
         message: "Comment added successfully",

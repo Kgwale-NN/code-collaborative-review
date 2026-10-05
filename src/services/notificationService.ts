@@ -5,6 +5,17 @@ type NotificationType =
   | "review_approved"
   | "changes_requested";
 
+export interface SubmissionNotification {
+  id: number;
+  user_id: number;
+  project_id: number;
+  submission_id: number;
+  type: NotificationType;
+  message: string;
+  is_read: boolean;
+  created_at: Date;
+}
+
 const messages: Record<NotificationType, string> = {
   comment_added: "Someone commented on your submission",
   review_approved: "Your submission was approved",
@@ -17,7 +28,7 @@ export async function createSubmissionNotification(
   actorId: number,
   type: NotificationType
 ) {
-  const result = await client.query(
+  const result = await client.query<SubmissionNotification>(
     `INSERT INTO notifications (
        user_id,
        project_id,
